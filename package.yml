@@ -1,0 +1,130 @@
+- name: Arch Packages Playbook
+  gather_facts: no
+  hosts: localhost
+
+  tasks:
+
+    - name: Install package
+      become: yes
+      become_user: aur_builder
+      kewlfft.aur.aur:
+        use: yay
+        state: present
+        name: "{{ item }}"
+      loop: "{{ packages }}"
+      vars:
+        packages:
+          #
+          # Search
+          - fd              # find entries in filesystem
+          - ripgrep         # current directory recursively searches for a regex pattern
+          - fzf             # command-line fuzzy finder
+          #
+          # Helper
+          - tldr            # tong long don't read
+          - man-db          # man page database
+          - pkgfile         # "command not found" hook
+          #
+          # Tool
+          - zoxide          # smart cd command
+          - eza             # file icons
+          #
+          # Editor
+          - neovim
+          #
+          # Utility
+          - rsync           # file copying tool
+          - neofetch        # cli system information
+          - detox           # remove space char within filename
+          - duf             # disk usage
+          - xdg-ninjia      # home directory cleaning suggestion
+          - wlr-randr       # Wayland refresh rate
+          #
+          # Compression
+          - unzip
+          - rar
+          #
+          # Clipboard
+          - wl-clipboard    # wayland
+          - xclip           # X11
+          #
+          # Hotkey
+          - sxhkd           # X11 hotkey deamon
+          #          - vim-fcitx
+          - wev             # obtain key number from terminal
+          - jq              # json parser, for hyprland cfg, quiting scratchpad befor switch workspace
+          - mokutil         # for checking BIOS secure boot status
+          #
+          # language
+          - luarocks        # requirement for Neovim Neorg
+          #
+          # Dependency
+          - patch           # for advcpmv
+          - gvfs-smb        # enable nemo/nautilus to connect smb share folds
+          #
+          # GUI
+          - nemo            # GTK Cinnamon file manager, fork of GNOME files (Nautilus)
+          - synology-drive
+          #
+          # Browser
+          - firefox
+          - brave-bin
+          - vivaldi
+          - thorium-browser-bin
+      tags:
+        - package
+
+    # install advcpmv to ./advcpmv
+    - name: Install advcpmv - cp / mv with progress bar & speed indicator
+      shell: curl https://raw.githubusercontent.com/jarun/advcpmv/master/install.sh --create-dirs -o ./advcpmv/install.sh && (cd advcpmv && sh install.sh)
+      tags:
+        - advcpmv
+
+    #  move excutable to runtime path
+    - name: Install advcpmv - move runable to runtime path
+      become: yes
+      shell: |
+        mv ./advcpmv/advcp /usr/local/bin/ ;
+        mv ./advcpmv/advmv /usr/local/bin/
+      tags:
+        - advcpmv
+
+    # cleanup installation directory
+    - name: Remove ./advcpmv directory after installation
+      file:
+        path: ./advcpmv
+        state: absent
+      tags:
+        - advcpmv
+
+    - name: Install fonts packages <font>
+      become: yes
+      become_user: aur_builder
+      kewlfft.aur.aur:
+        use: yay
+        state: present
+        name: "{{ item }}"
+      loop: "{{ packages }}"
+      vars:
+        packages:
+          - fontconfig
+          - noto-fonts
+          - noto-fonts-cjk
+          - noto-fonts-emoji
+          - noto-fonts-extra
+          - ttf-hack-nerd
+          - ttf-sourcecodepro-nerd
+          - ttf-jetbrains-mono-nerd
+          - ttf-mononoki-nerd
+      tags:
+        - font
+
+    - name: Refresh font cache
+      command: fc-cache -fv
+      tags:
+        - font
+
+
+
+
+

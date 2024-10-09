@@ -1,0 +1,55 @@
+- name: Arch Playbook - zsh shell
+  gather_facts: no
+  hosts: localhost
+
+  vars_prompt:
+    - name: "my_password"
+      prompt: "Enter sudo password for setting zsh as default shell"
+      private: yes
+
+  tasks:
+
+    - name: Set zsh as default shell <zsh>
+      become: yes
+      become_user: aur_builder
+      kewlfft.aur.aur:
+        use: yay
+        state: present
+        name: "{{ item }}"
+      loop: "{{ packages }}"
+      vars:
+        packages:
+          - eza
+          - zsh
+          - python-pexpect
+      tags:
+        - zsh
+        - wsl
+
+    - name: Set Zsh as Default Shell
+      expect:
+        command: "chsh -s /usr/bin/zsh"
+        responses:
+          (?i)password: "{{ my_password }}"
+      tags:
+        - zsh
+        - wsl
+
+    - name: Install zsh plug-ins
+      become: yes
+      become_user: aur_builder
+      kewlfft.aur.aur:
+        use: yay
+        state: present
+        name: "{{ item }}"
+      loop: "{{ packages }}"
+      vars:
+        packages:
+          - oh-my-zsh-git
+          - zsh-autosuggestions-git
+          - zsh-syntax-highlighting-git
+          - zsh-theme-powerlevel10k-git
+      tags:
+        - zsh
+        - wsl
+
