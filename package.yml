@@ -4,7 +4,12 @@
 
   tasks:
 
-    - name: Install package
+    # 1. Install packages & fonts
+    # 2. Refresh font cache
+    # 3. Install advcpmv
+    # 4. Clone dotfiles from github
+
+    - name: 1] Install packages and fonts
       become: yes
       become_user: aur_builder
       kewlfft.aur.aur:
@@ -77,42 +82,8 @@
           - brave-bin
           - vivaldi
           - thorium-browser-bin
-      tags:
-        - package
-
-    # install advcpmv to ./advcpmv
-    - name: Install advcpmv - cp / mv with progress bar & speed indicator
-      shell: curl https://raw.githubusercontent.com/jarun/advcpmv/master/install.sh --create-dirs -o ./advcpmv/install.sh && (cd advcpmv && sh install.sh)
-      tags:
-        - advcpmv
-
-    #  move excutable to runtime path
-    - name: Install advcpmv - move runable to runtime path
-      become: yes
-      shell: |
-        mv ./advcpmv/advcp /usr/local/bin/ ;
-        mv ./advcpmv/advmv /usr/local/bin/
-      tags:
-        - advcpmv
-
-    # cleanup installation directory
-    - name: Remove ./advcpmv directory after installation
-      file:
-        path: ./advcpmv
-        state: absent
-      tags:
-        - advcpmv
-
-    - name: Install fonts packages <font>
-      become: yes
-      become_user: aur_builder
-      kewlfft.aur.aur:
-        use: yay
-        state: present
-        name: "{{ item }}"
-      loop: "{{ packages }}"
-      vars:
-        packages:
+          #
+          # Fonts
           - fontconfig
           - noto-fonts
           - noto-fonts-cjk
@@ -123,12 +94,79 @@
           - ttf-jetbrains-mono-nerd
           - ttf-mononoki-nerd
       tags:
-        - font
+        - package
 
-    - name: Refresh font cache
+    - name: 2] Refresh font cache
       command: fc-cache -fv
       tags:
         - font
+
+    - name: 3] check whether advcpmv installed
+      stat:
+        path: "/usr/local/bin/advcp"
+      register: advcpmv_installed
+      tags:
+        - advcpmv
+
+    - name: 3] Install advcpmv - cp / mv with progress bar & speed indicator
+      shell: curl https://raw.githubusercontent.com/jarun/advcpmv/master/install.sh --create-dirs -o ./advcpmv/install.sh && (cd advcpmv && sh install.sh)
+      when: not advcpmv_installed.stat.exists
+      tags:
+        - advcpmv
+
+    - name: 3] Install advcpmv - move runable to runtime path
+      become: yes
+      shell: |
+        mv ./advcpmv/advcp /usr/local/bin/ ;
+        mv ./advcpmv/advmv /usr/local/bin/
+      when: not advcpmv_installed.stat.exists
+      tags:
+        - advcpmv
+
+    - name: 3] Remove ./advcpmv directory after installation
+      file:
+        path: ./advcpmv
+        state: absent
+      when: not advcpmv_installed.stat.exists
+      tags:
+        - advcpmv
+
+    # - name: Install fonts packages <font>
+    #   become: yes
+    #   become_user: aur_builder
+    #   kewlfft.aur.aur:
+    #     use: yay
+    #     state: present
+    #     name: "{{ item }}"
+    #   loop: "{{ packages }}"
+    #   vars:
+    #     packages:
+    #       - fontconfig
+    #       - noto-fonts
+    #       - noto-fonts-cjk
+    #       - noto-fonts-emoji
+    #       - noto-fonts-extra
+    #       - ttf-hack-nerd
+    #       - ttf-sourcecodepro-nerd
+    #       - ttf-jetbrains-mono-nerd
+    #       - ttf-mononoki-nerd
+    #   tags:
+    #     - font
+
+    - name: 4] check dotfile directory
+      stat:
+        path: "~/dotfiles"
+      register: dotfiles_dir
+      tags:
+        - dotfile
+
+    - name: 4] clone dotfiles
+      git:
+        repo: "git@github.com:curelesss/dotfiles.git"
+        dest: "~/dotfiles"
+      when: not dotfiles_dir.stat.exists
+      tags:
+        - dotfile
 
 
 
