@@ -14,6 +14,12 @@
       loop: "{{ packages }}"
       vars:
         packages:
+          # Emulator
+          - kitty
+          - wezterm
+          #
+          # dotfiles
+          - stow
           #
           # Search
           - fd              # find entries in filesystem

@@ -7,7 +7,7 @@
       source_key: "ssh/id_rsa"
       dest_key: "{{ lookup('env', 'HOME') }}/.ssh/id_rsa"
 
-      source_key_vpn: "{{ lookup('env', 'HOME') }}/.dotfiles/ansible.playbook/vpn/my.ovpn"
+      source_key_vpn: "{{ lookup('env', 'HOME') }}/.init.arch/vpn/my.ovpn"
       dest_key_vpn: "{{ lookup('env', 'HOME') }}/.vpn/my.ovpn"
 
 
