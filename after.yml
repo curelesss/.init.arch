@@ -1,0 +1,23 @@
+- name: Arch Setup Playbook2 - After Reboot
+  gather_facts: no
+  hosts: localhost
+
+  tasks:
+
+    - name: Ensure synology sync directory exists.
+      file:
+        dest: $HOME/synology_drive
+        mode: 0700
+        state: directory
+      tags:
+        - synology-drive
+
+    - name: Add rime sync directory setting if NOT exists
+      lineinfile:
+        path: $HOME/.local/share/fcitx5/rime/installation.yaml 
+        line: 'sync_dir: "/home/fdong/synology_drive/rime_sync"'
+        insertbefore: EOF 
+        state: present
+
+
+

@@ -1,0 +1,89 @@
+- name: Arch Playbook - IM & RIME
+  gather_facts: no
+  hosts: localhost
+
+  tasks:
+
+    - name: Install imput method <im>
+      become: yes
+      become_user: aur_builder
+      kewlfft.aur.aur:
+        use: yay
+        state: present
+        name: "{{ item }}"
+      loop: "{{ packages }}"
+      vars:
+        packages:
+          - fcitx5
+          - fcitx5-im
+          - fcitx5-rime
+          - rime-cloverpinyin
+      tags:
+        - im
+
+    - name: Enusre Colver Directory Exists
+      file:
+        dest: ~/.local/share/fcitx5/rime
+        state: directory
+      tags:
+        - im
+
+    - name: Setup clover pinyin config files 1
+      synchronize:
+        src: ~/dotfiles/rime/clover.pinyin/
+        dest: ~/.local/share/fcitx5/rime/
+        recursive: yes
+      tags:
+        - im
+
+    - name: Setup clover pinyin config files 2
+      ansible.builtin.copy:
+        src: ~/dotfiles/rime/default.custom.yaml
+        dest: ~/.local/share/fcitx5/rime/
+        recursive: yes
+      tags:
+        - im
+      
+        #    - name: Add rime sync directory setting if NOT exists
+        #    lineinfile:
+        #  path: $HOME/.local/share/fcitx5/rime/installation.yaml 
+        # line: 'sync_dir: "/home/fdong/synology_drive/rime_sync"'
+        # insertbefore: EOF 
+        # state: present
+        # tags:
+        #  - im
+
+    - name: Update /etc/environment - GTK_IM_MODULE=fcitx
+      become: yes
+      lineinfile:
+        path: /etc/environment
+        line: "GTK_IM_MODULE=fcitx"
+        insertafter: EOF
+        state: present
+      tags:
+        - im
+
+    - name: Update /etc/environment - QT_IM_MODULE=fcitx
+      become: yes
+      lineinfile:
+        path: /etc/environment
+        line: "QT_IM_MODULE=fcitx"
+        insertafter: "GTK_IM_MODULE=fcitx" 
+        state: present
+      tags:
+        - im
+
+    - name: Update /etc/environment - XMODIFIERS=@im=fcitx
+      become: yes
+      lineinfile:
+        path: /etc/environment
+        line: "XMODIFIERS=@im=fcitx"
+        insertafter: "QT_IM_MODULE=fcitx" 
+        state: present
+      tags:
+        - im
+
+    - name: Fcitx5 Config Gui
+      command: fcitx5-configtool
+      tags:
+        - im

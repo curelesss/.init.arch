@@ -1,0 +1,28 @@
+- name: Arch Z790-A 4070TI VFIP Step 2 playbook
+  gather_facts: no
+  hosts: localhost
+  
+  tasks:
+
+    - name: VFIO Required Packages
+      become: yes
+      become_user: aur_builder
+      kewlfft.aur.aur:
+        use: yay
+        state: present
+        name: "{{ item }}"
+      loop: "{{ packages }}"
+      vars:
+        packages:
+          - qemu
+          - qemu-full
+          - libvirt
+          - virt-manager
+          - dmidecode
+          - ovmf
+          - edk2-ovmf
+          - samba
+          - dnsmasq
+          - swtpm
+          - looking-glass
+

@@ -1,0 +1,178 @@
+- name: Arch Z790-A 4070TI VFIP Step 3 playbook
+  gather_facts: no
+  hosts: localhost
+  
+  tasks:
+
+    - name: 1] [Enable and start libvirt service
+      become: yes
+      systemd:
+        name: libvirtd
+        state: started
+        enabled: yes
+      tags:
+        - step1
+
+    - name: 2.1] [Ensure the user fdong is in the libvirt group
+      become: yes
+      user:
+        name: fdong
+        groups: libvirt
+        append: yes
+      tags:
+        - step2
+
+    - name: 2.2] [Ensure the user fdong is in the libvirt-qemu group
+      become: yes
+      user:
+        name: fdong
+        groups: libvirt-qemu
+        append: yes
+      tags:
+        - step2
+
+    - name: 3] Set default network autostart
+      become: yes
+      command:
+        cmd: virsh net-autostart default 
+      ignore_errors: yes
+      tags:
+        - step3
+
+    - name: 4.1] [Check if default network is running
+      become: yes
+      shell: virsh net-list --all --name | grep -w default
+      register: default_network_status
+      changed_when: false
+      check_mode: no
+      tags:
+        - step4
+
+    - name: 4.2] [Start the default network
+      become: yes
+      command: virsh net-start default
+      when: default_network_status.stdout == ""
+      tags:
+        - step4
+
+    - name: 5.1] [Check if bridge0 already exists
+      become: yes
+      shell: nmcli connection show bridge0
+      register: bridge_status
+      ignore_errors: yes
+      tags:
+        - step5
+
+    - name: 5.2] [add bridge0
+      become: yes
+      command: nmcli connection add type bridge con-name bridge0 ifname bridge0
+      when: bridge_status.rc != 0
+      tags:
+        - step5
+
+      # Z790-A Specific Task
+    - name: 6.1] [Check if eno2 is already a slave to bridge0
+      become: yes
+      shell: nmcli connection show 'Bridge connection 1' | grep -q 'eno2'
+      register: slave_status
+      ignore_errors: yes
+      tags:
+        - step6
+
+    - name: 6.2] [add local ethernet to bridge0
+      become: yes
+      command: nmcli connection add type ethernet slave-type bridge con-name 'Bridge connection 1' ifname eno2 master bridge0
+      when: slave_status.rc != 0
+      tags:
+        - step6
+
+    - name: 7.1] [Check if bridge0 is activated
+      become: yes
+      command: nmcli -t -f GENERAL.STATE connection show bridge0
+      register: bridge0_state
+      changed_when: false
+      tags:
+        - step7
+
+    - name: 7.2] [activate bridge0
+      become: yes
+      command: nmcli connection up bridge0
+      when: bridge0_state.stdout != 'GENERAL.STATE:activated'
+      tags:
+        - step7
+
+    - name: 8.1] [Check current autoconnect setting for bridge0
+      become: yes
+      shell: nmcli connection show bridge0 | grep 'connection.autoconnect-slaves'
+      register: autoconnect_status
+      ignore_errors: yes
+      tags:
+        - step8
+
+    - name: 8.2] [setup auto-connection
+      become: yes
+      command: nmcli connection modify bridge0 connection.autoconnect-slaves 1
+      when: autoconnect_status.rc != 0 or autoconnect_status.stdout.find('1') == -1
+      tags:
+        - step8
+
+    - name: 8.3] [re-activate bridge0
+      become: yes
+      command: nmcli connection up bridge0
+      when: autoconnect_status.rc != 0 or autoconnect_status.stdout.find('1') == -1
+      tags:
+        - step8
+
+    - name: 9.1] [remove default acl
+      become: yes
+      command:
+        cmd: setfacl -R -b /var/lib/libvirt/images
+      tags:
+        - step9
+
+    - name: 9.2] [update acl
+      become: yes
+      command:
+        cmd: setfacl -R -m u:fdong:rwX /var/lib/libvirt/images
+      tags:
+        - step9
+
+    - name: 9.3] [update acl 2
+      become: yes
+      command:
+        cmd: setfacl -m d:u:fdong:rwx /var/lib/libvirt/images
+      tags:
+        - step9
+
+    - name: 10.1] [Check if the file /etc/tmpfiles.d/10-looking-glass.conf exists
+      become: yes
+      stat:
+        path: /etc/tmpfiles.d/10-looking-glass.conf
+      register: file_check
+      tags:
+        - step10
+
+    - name: 10.2] [Create the file with the specified content
+      become: yes
+      copy:
+        dest: /etc/tmpfiles.d/10-looking-glass.conf
+        content: |
+          f /dev/shm/looking-glass 0660 fdong kvm -
+        owner: root
+        group: root
+        mode: '0644'
+      when: not file_check.stat.exists
+      tags:
+        - step10
+
+    - name: 10.3] [generate share memory file
+      become: yes
+      command:
+        cmd: systemd-tmpfiles --create /etc/tmpfiles.d/10-looking-glass.conf
+      when: not file_check.stat.exists
+      tags:
+        - step10
+
+
+
+

@@ -1,0 +1,93 @@
+- name: Asus Z790-A + 4070TI Arch VFIO Playbook
+  gather_facts: no
+  hosts: localhost
+
+  handlers:
+
+    - name: Update grub
+      become: yes
+      command: grub-mkconfig -o /boot/grub/grub.cfg 
+
+    - name: Regenerate initramfs
+      become: yes
+      command: mkinitcpio -p linux  
+
+  tasks:
+
+      # ASUS Z790-A D4 Motherboard
+      # hardware isolation
+      # Nvidia 4070 TI
+      # Nvidia 4070 TI Audio
+      # SATA Controller
+      # Fanxiang 2TB NVMe SSD
+    - name: Update grub
+      become: yes
+      lineinfile:
+        path: /etc/default/grub 
+        regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
+        line: 'GRUB_CMDLINE_LINUX_DEFAULT="intel_iommu=on iommu=pt rd.driver.pre=vfio-pci vfio-pci.ids=10de:2782,10de:22bc,8086:7a62,1e4b:1202"'
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes
+        state: present
+      notify:
+        - Update grub
+
+    # - name: Check if GRUB_CMDLINE_LINUX_DEFAULT is set correctly
+    #   shell: grep -E '^GRUB_CMDLINE_LINUX_DEFAULT="intel_iommu=on iommu=pt rd\.driver\.pre=vfio-pci vfio-pci\.ids=10de:2782,10de:22bc"$' /etc/default/grub
+    #   register: grub_cmdline_check
+    #   ignore_errors: yes  # Ignore error if grep doesn't find the line
+    #
+    # - name: Update GRUB configuration if necessary
+    #   block:
+    #     - name: Backup original GRUB configuration
+    #       become: yes
+    #       copy:
+    #         src: /etc/default/grub
+    #         dest: /etc/default/grub.bak
+    #         remote_src: yes
+    #
+    #     - name: Replace GRUB_CMDLINE_LINUX_DEFAULT
+    #       become: yes
+    #       lineinfile:
+    #         path: /etc/default/grub
+    #         regexp: '^GRUB_CMDLINE_LINUX_DEFAULT='
+    #         line: 'GRUB_CMDLINE_LINUX_DEFAULT="intel_iommu=on iommu=pt rd.driver.pre=vfio-pci vfio-pci.ids=10de:2782,10de:22bc"'
+    #         backup: yes  # Create a backup of the original file
+    #   when: grub_cmdline_check.rc != 0  # Only run if the line doesn't exist or is incorrect
+    #
+    # - name: Update Grub
+    #   become: yes
+    #   command: grub-mkconfig -o /boot/grub/grub.cfg
+    #
+    - name: Create or update /etc/modprobe.d/vfio.conf with the specified content
+      become: yes
+      copy:
+        dest: /etc/modprobe.d/vfio.conf
+        content: |
+          softdep nouveau pre: vfio-pci
+          softdep snd_hda_intel pre: vfio-pci
+          options vfio-pci ids=10de:2782,10de:22bc,8086:7a62,1e4b:1202
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes  # Optional: creates a backup of the file before overwriting it
+    
+    - name: Ensure the MODULES line in /etc/mkinitcpio.conf is set to the correct values
+      become: yes
+      lineinfile:
+        path: /etc/mkinitcpio.conf
+        regexp: '^MODULES='
+        line: 'MODULES=(vfio_pci vfio vfio_iommu_type1 btrfs)'
+        owner: root
+        group: root
+        mode: '0644'
+        backup: yes
+        state: present
+      notify:
+        - Regenerate initramfs
+    
+    - name: Step 1 VFIO Setup Finished
+      debug:
+        msg: "VFIO setup stage-1 finished, System reboot required"
