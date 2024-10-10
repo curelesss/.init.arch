@@ -1,0 +1,42 @@
+- name: Arch playbook - Hyprland
+  gather_facts: no
+  hosts: localhost
+
+  tasks:
+
+    - name: 1] Install hyprland packages
+      become: yes
+      become_user: aur_builder
+      kewlfft.aur.aur:
+        use: yay
+        state: present
+        name: "{{ item }}"
+      loop: "{{ packages }}"
+      vars:
+        packages:
+          - hyprland
+          - hyprpaper
+          - hyprlock
+          - wofi
+          - waybar
+          - dunst
+          - xdg-desktop-portal-hyprland
+          - qt5-wayland
+          - qt6-wayland
+          - polkit-kde-agent
+          - brightnessctl
+          - python-pywal
+      tags:
+        - hyprland
+
+    - name: Stow hyprland dotfiles
+      command: stow "{{ item }}"
+      args:
+        chdir: "~/dotfiles"
+      loop:
+        - hyprland
+        - waybar
+        - pywal
+      tags:
+        - hyprland
+

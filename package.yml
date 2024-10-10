@@ -168,6 +168,15 @@
       tags:
         - dotfile
 
+    - name: Stow git all dotfiles
+      command: stow "{{ item }}"
+      args:
+        chdir: "~/dotfiles"
+      loop:
+        - git
+      tags:
+        - dotfile
+
 
 
 
