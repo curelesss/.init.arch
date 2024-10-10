@@ -1,0 +1,149 @@
+- name: Arch Setup Playbook
+  gather_facts: no
+  hosts: localhost
+
+  tasks:
+
+    # - name: Create hard links for dotfiles
+    #   hosts: localhost
+    #   tasks:
+    #     - name: Create hard links using loop
+    #       file:
+    #         src: "{{ item.src }}"
+    #         path: "{{ item.path }}"
+    #         state: hard
+    #       loop:
+    #         - { src: "{{ ansible_env.HOME }}/.dotfile/a", path: "{{ ansible_env.HOME }}/.config/a" }
+    #         - { src: "{{ ansible_env.HOME }}/.dotfile/b", path: "{{ ansible_env.HOME }}/.config/b" }
+    #       tags:
+    #         - dwm
+
+    - name: 1.0] 安装 dwm 依赖包 - Install dwm dependencies
+      become: yes
+      pacman:
+        name:
+          - base-devel
+          - libx11
+          - libxft
+          - libxinerama
+        state: present
+      tags:
+        - dwm
+        - dwm1
+
+    - name: 1.1] 安装 dwm 所需软件 - Install dwm-related tools (optional)
+      become: yes
+      become_user: aur_builder
+      kewlfft.aur.aur:
+        use: yay
+        state: present
+        name: 
+          - st
+          - dmenu
+      tags:
+        - dwm
+        - dwm1
+
+    # 例子 目录循环确认及相应操作
+    # - name: 1.3] 确认库目录状态 - Check if repositories exist
+    #   stat:
+    #     path: "{{ item }}"
+    #   register: repo_stat
+    #   with_items:
+    #     - ~/suckless/dwm-flexipatch
+    #     - ~/suckless/flexipatch-finalizer
+    #   loop_control:
+    #     label: "{{ item }}"
+    #   tags:
+    #     - dwm
+    #
+    # - name: 1.4] 清洁已存在的库目录 - Run git reset --hard in existing repositories
+    #   command: git reset --hard HEAD
+    #   args:
+    #     chdir: "{{ item.item }}"
+    #   when: item.stat.exists
+    #   with_items: "{{ repo_stat.results }}"
+    #   loop_control:
+    #     label: "{{ item.item }}"
+    #   tags:
+    #     - dwm
+
+    - name: 2.1] 清洁文件夹 - clean target directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+          - ~/suckless/dwm-flexipatch/
+          - ~/suckless/flexipatch-finalizer/
+          - ~/suckless/dwm/
+      tags:
+        - dwm
+        - dwm2
+
+    - name: 2.2] 拉取库 - Clone or update Git repositories
+      git:
+        repo: "{{ item.repo }}"
+        dest: "{{ item.dest }}"
+        update: yes
+      loop:
+        - { repo: 'https://github.com/bakkeby/dwm-flexipatch.git', dest: ~/suckless/dwm-flexipatch }
+        - { repo: 'https://github.com/bakkeby/flexipatch-finalizer', dest: ~/suckless/flexipatch-finalizer }
+      tags:
+        - dwm
+        - dwm2
+
+    # 例子 批量删除文件
+    # - name: 清洁 - Clean up
+    #   file:
+    #     path: "{{ item }}"
+    #     state: absent
+    #   loop:
+    #     - ~/suckless/dwm-flexipatch/config.h
+    #     - ~/suckless/dwm-flexipatch/patches.h 
+    #   tags:
+    #     - dwm
+    #     - dwm3
+
+    - name: 3.1] 配置 dwm 补丁 - Modify patches in patches.def.h
+      lineinfile:
+        path: ~/suckless/dwm-flexipatch/patches.def.h
+        regexp: '^#define {{ item.key }}_PATCH'
+        line: '#define {{ item.key }}_PATCH {{ item.value }}'
+        backup: yes
+      loop:
+        - { key: ALWAYSCENTER, value: 1 }
+        - { key: ATTACHBELOW, value: 1 }
+        - { key: AUTOSTART, value: 1 }
+        - { key: BAR_SYSTRAY, value: 1 }
+        - { key: MOVESTACK, value: 1 }
+        - { key: RESTARTSIG, value: 1 }
+        - { key: SCRATCHPADS, value: 1 }
+        - { key: VANITYGAPS, value: 1 }
+      # when: file_stat.stat.exists
+      tags:
+        - dwm
+        - dwm3
+
+    - name: 3.2] build dwm-flexipatch
+      become_user: fdong
+      become: yes
+      shell: |
+        cd ~/suckless/dwm-flexipatch
+        sudo make clean install
+      tags:
+        - dwm
+        - dwm3
+
+    - name: 3.3] 导出定制的 dwm 并 编译 - Change to flexipatch-finalizer directory and finalize dwm
+      become_user: fdong
+      become: yes
+      shell: |
+        cd ~/suckless/flexipatch-finalizer
+        ./flexipatch-finalizer.sh -r -d ~/suckless/dwm-flexipatch -o ~/suckless/dwm
+        cd ~/suckless/dwm
+        sudo make clean install
+      tags:
+        - dwm
+        - dwm3
+
+
