@@ -168,20 +168,20 @@
       tags:
         - dotfile
 
-    - name 5] delete original .gitconfig
-      file:
-        path: "~/.gitconfig"
-        state: absent
-
-    - name: Stow git all dotfiles
-      command: stow "{{ item }}"
-      args:
-        chdir: "~/dotfiles"
-      loop:
-        - git
-        - neovim
-      tags:
-        - dotfile
+    # - name 5] delete original .gitconfig
+    #   file:
+    #     path: "~/.gitconfig"
+    #     state: absent
+    #
+    # - name: Stow git all dotfiles
+    #   command: stow "{{ item }}"
+    #   args:
+    #     chdir: "~/dotfiles"
+    #   loop:
+    #     - git
+    #     - neovim
+    #   tags:
+    #     - dotfile
 
 
 
