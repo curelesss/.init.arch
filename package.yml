@@ -172,13 +172,20 @@
     #   file:
     #     path: "~/.gitconfig"
     #     state: absent
-    #
+    
+    - name: Remove ~/.gitconfig file
+      ansible.builtin.file:
+        path: "$HOME/.gitconfig"
+        state: absent
+      tags:
+        - dotfile
+
     - name: Stow git all dotfiles
       command: stow "{{ item }}"
       args:
         chdir: "~/dotfiles"
       loop:
-        # - git
+        - git_all_status
         - neovim
       tags:
         - dotfile

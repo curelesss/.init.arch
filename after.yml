@@ -12,6 +12,15 @@
       tags:
         - synology-drive
 
+    - name: Ensure directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0700'
+      loop:
+        - "$HOME/synology_drive"
+        - "$HOME/sync"
+
     - name: Add rime sync directory setting if NOT exists
       lineinfile:
         path: $HOME/.local/share/fcitx5/rime/installation.yaml 
