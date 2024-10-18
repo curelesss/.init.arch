@@ -18,6 +18,7 @@
           - hyprpaper
           - hyprlock
           - wofi
+          - rofi
           - waybar
           - dunst
           - xdg-desktop-portal-hyprland
