@@ -37,6 +37,7 @@
           - pkgfile         # "command not found" hook
           #
           # Tool
+          - bat             # better cat
           - zoxide          # smart cd command
           - eza             # file icons
           #
