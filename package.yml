@@ -186,7 +186,7 @@
       args:
         chdir: "~/dotfiles"
       loop:
-        - git_all_status
+        - scripts
         - neovim
       tags:
         - dotfile
